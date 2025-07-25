@@ -1,0 +1,96 @@
+name: Build and Push Backstage Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: depot-ubuntu-24.04,dagger=0.18.12
+    strategy:
+      matrix:
+        environment:
+          - name: dev
+            iframe_domain: "localtest.me"
+          - name: production
+            iframe_domain: "ai401kchat.com"
+      fail-fast: false
+    environment: ${{ matrix.environment.name }}
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for git metadata
+        
+      - name: Gather build metadata
+        id: build-meta
+        run: |
+          echo "commit_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "commit_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "build_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --pretty=%B | head -n 1 | tr -d '\n' | cut -c1-100)" >> $GITHUB_OUTPUT
+          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
+          echo "build_number=${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "repository=${{ github.repository }}" >> $GITHUB_OUTPUT
+        
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch,suffix=-${{ matrix.environment.name }}
+            type=ref,event=pr,suffix=-${{ matrix.environment.name }}
+            type=raw,value=v${{ github.run_number }}-${{ matrix.environment.name }}
+            type=raw,value=latest-${{ matrix.environment.name }},enable={{is_default_branch}}
+            
+      - name: Build and push with Dagger
+        env:
+          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Convert tags from metadata action to comma-separated list
+          TAGS_JSON='${{ steps.meta.outputs.json }}'
+          TAGS=$(echo "$TAGS_JSON" | jq -r '.tags | join(",")')
+          
+          # Run Dagger build and push with environment-specific config
+          dagger -m . call build-and-push-env \
+            --source . \
+            --environment "${{ matrix.environment.name }}" \
+            --iframe-domain "${{ matrix.environment.iframe_domain }}" \
+            --registry "${{ env.REGISTRY }}" \
+            --image-name "${{ env.IMAGE_NAME }}" \
+            --tags "$TAGS" \
+            --registry-user "${{ github.actor }}" \
+            --registry-pass env:GITHUB_TOKEN \
+            --git-commit-sha "${{ steps.build-meta.outputs.commit_sha }}" \
+            --git-commit-short "${{ steps.build-meta.outputs.commit_short }}" \
+            --git-branch "${{ steps.build-meta.outputs.branch }}" \
+            --build-time "${{ steps.build-meta.outputs.build_time }}" \
+            --build-version "v${{ github.run_number }}" \
+            --git-commit-message "${{ steps.build-meta.outputs.commit_message }}" \
+            --git-commit-author "${{ steps.build-meta.outputs.commit_author }}" \
+            --build-number "${{ steps.build-meta.outputs.build_number }}" \
+            --git-repository "${{ steps.build-meta.outputs.repository }}"
+          
+      - name: Image digest
+        run: |
+          echo "Image pushed successfully"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
+          echo "Labels: ${{ steps.meta.outputs.labels }}"

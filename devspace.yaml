@@ -1,0 +1,121 @@
+version: v2beta1
+name: backstage
+
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
+pipelines:
+  # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
+  dev:
+    run: |-
+      # run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
+      # ensure_pull_secrets --all    # 2. Ensure pull secrets
+      # create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
+      start_dev app                # 4. Start dev mode "app" (see "dev" section)
+      code --folder-uri vscode-remote://ssh-remote+my-app.devspace/app
+  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
+  deploy:
+    run: |-
+      run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all                         # 2. Ensure pull secrets
+      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
+      create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
+
+# This is a list of `images` that DevSpace can build for this project
+# We recommend to skip image building during development (devspace dev) as much as possible
+images:
+  app:
+    image: ghcr.io/pittampalliorg/backstage:latest
+    dockerfile: ./packages/backend/Dockerfile
+
+# This is a list of `deployments` that DevSpace can create for this project
+deployments:
+  backstage:
+    # This deployment uses existing kubectl manifests
+    kubectl:
+      manifests:
+        - ./kubernetes/backstage-deployment.yaml
+        - ./kubernetes/backstage-service.yaml
+        - ./kubernetes/backstage-ingress.yaml
+
+# This is a list of `dev` containers that are based on the containers created by your deployments
+dev:
+  app:
+    # Select container using labels for better stability
+    imageSelector: ghcr.io/pittampalliorg/backstage-app:sha256-0b2ffeb461b522d6115aee51d590719d31e5eb8b0783c7d55352676bdfcad48d
+    # Replace the container image with this dev-optimized image (allows to skip image building during development)
+    devImage: ghcr.io/loft-sh/devspace-containers/typescript:20-alpine
+    resources:
+      limits:
+        cpu: "8"           # 8 CPU cores
+        memory: "16Gi"     # 16 GB memory
+        ephemeral-storage: "50Gi"  # 50 GB ephemeral storage
+      requests:
+        cpu: "4"           # Request 4 CPU cores minimum
+        memory: "8Gi"      # Request 8 GB memory minimum
+        ephemeral-storage: "20Gi"  # Request 20 GB storage minimum
+
+    sync:
+      - path: ./
+      # - path: /home/vpittamp/.claude:/.claude
+        excludePaths:
+        - node_modules/
+        # - .git/  # Include .git for version info
+        - dist/
+        - dist-types/
+        - "*.log"
+        - .devspace/
+
+    # Open a terminal and use the following command to start it
+    terminal:
+      command: ./devspace_start.sh
+    # Inject a lightweight SSH server into the container (so your IDE can connect to the remote dev env)
+    ssh:
+      localHostname: my-app.devspace
+    # Make the following commands from my local machine available inside the dev container
+    # Commenting out proxy commands due to permission issues in the container
+    proxyCommands:
+      - command: devspace
+      - command: kubectl
+      - gitCredentials: true
+    # Forward the following ports to be able access your application via localhost
+    ports:
+      - port: "3000:3000"      # Frontend (React app)
+        bindAddress: 0.0.0.0   # Allow access from outside container
+      - port: "7007:7007"      # Backend API
+        bindAddress: 0.0.0.0   # Allow access from outside container
+      - port: "9229"           # debugger, same local & remote
+    # Open the following URLs once they return an HTTP status code other than 502 or 503
+    # Disabled to prevent PowerShell errors in container
+    open:
+      - url: http://localhost:3000
+# vars: 
+#   NEXTAUTH_URL="http://localhost:3000"
+#   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+#   NEXT_PUBLIC_ASSET_PREFIX="http://localhost:3000"
+#   NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+#   NEXT_PUBLIC_BASE_PATH="http://localhost:3000"
+#   NEXT_PUBLIC_OTEL_TRACES_ENDPOINT="http://localhost:3000/api/telemetry/traces"
+#   NEXT_PUBLIC_OTEL_LOGS_ENDPOINT="http://localhost:3000/api/telemetry/logs"
+# Use the `commands` section to define repeatable dev workflows for this project 
+commands:
+  migrate-db:
+    command: |-
+      echo 'This is a cross-platform, shared command that can be used to codify any kind of dev task.'
+      echo 'Anyone using this project can invoke it via "devspace run migrate-db"'
+  start-dev:
+    command: |-
+      APP_BASE_URL=http://localhost:3000 BACKEND_BASE_URL=http://localhost:7007 yarn start --config /app/app-config.yaml
+  start-combined:
+    command: |-
+      cd /app && ./start-combined.sh
+  start-separate:
+    command: |-
+      echo "Starting frontend and backend separately (for debugging)"
+      cd /app && APP_BASE_URL=http://localhost:3000 yarn workspace app start --config /app/app-config.yaml
+
+# Define dependencies to other projects with a devspace.yaml
+# dependencies:
+#   api:
+#     git: https://...  # Git-based dependencies
+#     tag: v1.0.0
+#   ui:
+#     path: ./ui        # Path-based dependencies (for monorepos)
