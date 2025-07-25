@@ -36,6 +36,9 @@ RUN mkdir packages/backend/dist/skeleton packages/backend/dist/bundle \
 # Stage 3 - Build the actual backend image and install production dependencies
 FROM node:18-bookworm-slim
 
+# Define architecture for downloads
+ARG TARGETARCH
+
 # Install isolate-vm dependencies, these are needed by the @backstage/plugin-scaffolder-backend.
 # Install packages needed to get utility binaries
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -48,15 +51,22 @@ RUN yarn config set python /usr/bin/python3
 # Add kubectl for the kube apply plugin.
 # Add cnoe-cli
 # Add mkdocs for the TechDocs plugin.
-RUN curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.29.9/bin/linux/amd64/kubectl && chmod +x /usr/local/bin/kubectl
+RUN curl -L -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.29.9/bin/linux/${TARGETARCH}/kubectl && chmod +x /usr/local/bin/kubectl
 
-RUN curl -L -O https://github.com/cnoe-io/cnoe-cli/releases/download/v0.1.0/cnoe_Linux_x86_64.tar.gz && \
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+        CNOE_ARCH="x86_64"; \
+    elif [ "${TARGETARCH}" = "arm64" ]; then \
+        CNOE_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: ${TARGETARCH}" && exit 1; \
+    fi && \
+    curl -L -O https://github.com/cnoe-io/cnoe-cli/releases/download/v0.1.0/cnoe_Linux_${CNOE_ARCH}.tar.gz && \
     curl -L -O https://github.com/cnoe-io/cnoe-cli/releases/download/v0.1.0/checksums.txt && \
     sha256sum -c --strict --status --ignore-missing checksums.txt && \
-    tar -xzf cnoe_Linux_x86_64.tar.gz && \
+    tar -xzf cnoe_Linux_${CNOE_ARCH}.tar.gz && \
     mv cnoe /usr/bin/cnoe-cli && \
     chmod +x /usr/bin/cnoe-cli && \
-    rm checksums.txt cnoe_Linux_x86_64.tar.gz
+    rm checksums.txt cnoe_Linux_${CNOE_ARCH}.tar.gz
 COPY ./cnoe-wrapper.sh /usr/bin/cnoe
 RUN chmod +x /usr/bin/cnoe
 
