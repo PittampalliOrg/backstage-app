@@ -40,7 +40,7 @@ deployments:
 dev:
   app:
     # Select container using labels for better stability
-    imageSelector: ghcr.io/pittampalliorg/backstage-app:sha256-0b2ffeb461b522d6115aee51d590719d31e5eb8b0783c7d55352676bdfcad48d
+    imageSelector: ghcr.io/pittampalliorg/backstage-app:sha256-8e15c7a8c6d29af30f96dc2a406b34fe467636bf3df69f3375230f6d6d45d01f
     # Replace the container image with this dev-optimized image (allows to skip image building during development)
     devImage: ghcr.io/loft-sh/devspace-containers/typescript:20-alpine
     resources:

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Button, Grid } from '@material-ui/core';
 import {
   EntityApiDefinitionCard,
@@ -57,6 +57,11 @@ import {
   EntityArgoCDOverviewCard,
   isArgocdAvailable
 } from '@roadiehq/backstage-plugin-argo-cd';
+
+import {
+  EntityIFrameContent,
+  EntityIFrameCard,
+} from '@roadiehq/backstage-plugin-iframe';
 
 import {
   EntityArgoWorkflowsOverviewCard,
@@ -146,6 +151,17 @@ const overviewContent = (
         </Grid>
       </EntitySwitch.Case>
     </EntitySwitch>
+    <EntitySwitch>
+      <EntitySwitch.Case if={e => isKubernetesAvailable(e)}>
+        <Grid item md={6}>
+          <EntityIFrameCard 
+            src="/api/proxy/headlamp"
+            title="Kubernetes Dashboard"
+            height="400px"
+          />
+        </Grid>
+      </EntitySwitch.Case>
+    </EntitySwitch>
     <Grid item md={6} xs={12}>
       <EntityCatalogGraphCard variant="gridItem" height={400} />
     </Grid>
@@ -167,6 +183,16 @@ const serviceEntityPage = (
 
     <EntityLayout.Route path="/kubernetes" title="Kubernetes" if={e => isKubernetesAvailable(e)}>
       <EntityKubernetesContent refreshIntervalMs={30000} />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/headlamp" title="Headlamp" if={e => isKubernetesAvailable(e)}>
+      <EntityIFrameContent 
+        iframe={{
+          src: "/api/proxy/headlamp",
+          height: "100%"
+        }}
+        title="Kubernetes Dashboard"
+      />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/apache-spark" title="Spark" if={isApacheSparkAvailable}>

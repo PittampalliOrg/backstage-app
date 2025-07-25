@@ -45,10 +45,21 @@ integrations:
 proxy:
   ### Example for how to add a proxy endpoint for the frontend.
   ### A typical reason to do this is to handle HTTPS and CORS for internal services.
-  # endpoints:
-  #   '/test':
-  #     target: 'https://example.com'
-  #     changeOrigin: true
+  endpoints:
+    # Headlamp Kubernetes Dashboard
+    '/headlamp':
+      target: 'http://headlamp:4466'
+      changeOrigin: true
+      headers:
+        X-Forwarded-Host: '${APP_CONFIG_app_baseUrl}'
+        X-Forwarded-Proto: 'https'
+
+# Iframe plugin configuration - allowlist for embedded content
+iframe:
+  allowList: 
+    - "localhost:4466"
+    - "headlamp"
+    - "${APP_CONFIG_app_baseUrl}"
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
