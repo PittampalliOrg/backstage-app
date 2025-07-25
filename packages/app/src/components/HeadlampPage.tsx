@@ -1,6 +1,5 @@
 import React from 'react';
 import { Header, Page, Content } from '@backstage/core-components';
-import { EntityIFrameContent } from '@roadiehq/backstage-plugin-iframe';
 import { Button } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 
@@ -25,21 +24,15 @@ export const HeadlampPage = () => {
         </Button>
       </Header>
       <Content noPadding>
-        <div style={{ 
-          height: 'calc(100vh - 220px)', // Account for header and top nav
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <EntityIFrameContent 
-            iframe={{
-              src: "/api/proxy/headlamp",
-              height: "100%",
-              width: "100%"
-            }}
-            title="Kubernetes Dashboard"
-          />
-        </div>
+        <iframe 
+          src="/api/proxy/headlamp"
+          style={{ 
+            width: '100%', 
+            height: 'calc(100vh - 220px)', // Account for header and top nav
+            border: 'none'
+          }}
+          title="Headlamp Dashboard"
+        />
       </Content>
     </Page>
   );
