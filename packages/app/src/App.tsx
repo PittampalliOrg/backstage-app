@@ -41,6 +41,7 @@ import {
   cnoeDarkTheme,
 } from '@internal/plugin-cnoe-ui';
 import { HeadlampPage } from './components/HeadlampPage';
+import { GiteaPage } from './components/GiteaPage';
 import {configApiRef, useApi} from "@backstage/core-plugin-api";
 import { ArgoWorkflowsPage } from '@internal/plugin-argo-workflows';
 import { ApacheSparkPage } from '@internal/plugin-apache-spark';
@@ -155,6 +156,7 @@ const routes = (
     <Route path="/apache-spark" element={<ApacheSparkPage />} />
     <Route path="/terraform" element={<TerraformPluginPage />} />
     <Route path="/headlamp" element={<HeadlampPage />} />
+    <Route path="/gitea" element={<GiteaPage />} />
   </FlatRoutes>
 );
 

@@ -42,6 +42,16 @@ backend:
       headers:
         X-Forwarded-Host: '${APP_CONFIG_app_baseUrl}'
         X-Forwarded-Proto: 'https'
+    '/gitea':
+      target: 'https://cnoe.localtest.me:8443/gitea'
+      changeOrigin: true
+      secure: false
+      credentials: dangerously-allow-unauthenticated
+      pathRewrite:
+        '^/api/proxy/gitea': '/'
+      headers:
+        X-Forwarded-Host: '${APP_CONFIG_app_baseUrl}'
+        X-Forwarded-Proto: 'https'
 integrations:
   gitea:
     - baseUrl: https://cnoe.localtest.me:8443/gitea
@@ -59,6 +69,8 @@ iframe:
     - "localhost:4466"
     - "headlamp"
     - "${APP_CONFIG_app_baseUrl}"
+    - "cnoe.localtest.me:8443"
+    - "gitea"
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs

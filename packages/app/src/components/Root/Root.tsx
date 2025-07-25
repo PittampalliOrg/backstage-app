@@ -6,6 +6,7 @@ import MapIcon from '@material-ui/icons/MyLocation';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
 import DashboardIcon from '@material-ui/icons/Dashboard';
+import CodeIcon from '@material-ui/icons/Code';
 import {LogoFull, LogoIcon} from '@internal/plugin-cnoe-ui';
 import {
   Settings as SidebarSettings,
@@ -26,6 +27,7 @@ import {
 } from '@backstage/core-components';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
+import { VersionIndicator } from './VersionIndicator';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -74,6 +76,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarScrollWrapper>
           <SidebarItem icon={MapIcon} to="tech-radar" text="Tech Radar" />
           <SidebarItem icon={DashboardIcon} to="headlamp" text="Headlamp" />
+          <SidebarItem icon={CodeIcon} to="gitea" text="Gitea" />
         </SidebarScrollWrapper>
       </SidebarGroup>
       <SidebarSpace />
@@ -87,5 +90,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
       </SidebarGroup>
     </Sidebar>
     {children}
+    <VersionIndicator />
   </SidebarPage>
 );

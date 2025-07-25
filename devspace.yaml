@@ -5,12 +5,10 @@ name: backstage
 pipelines:
   # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
   dev:
+      # ensure_pull_secrets --all    # 1. Ensure pull secrets
+      # create_deployments --all     # 2. Deploy Helm charts and manifests specified as "deployments"
     run: |-
-      # run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
-      # ensure_pull_secrets --all    # 2. Ensure pull secrets
-      # create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
-      start_dev app                # 4. Start dev mode "app" (see "dev" section)
-      code --folder-uri vscode-remote://ssh-remote+my-app.devspace/app
+      start_dev app                # 3. Start dev mode "app" (see "dev" section)
   # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
   deploy:
     run: |-
@@ -32,15 +30,18 @@ deployments:
     # This deployment uses existing kubectl manifests
     kubectl:
       manifests:
+        - ./kubernetes/backstage-configmap.yaml
         - ./kubernetes/backstage-deployment.yaml
         - ./kubernetes/backstage-service.yaml
-        - ./kubernetes/backstage-ingress.yaml
 
 # This is a list of `dev` containers that are based on the containers created by your deployments
 dev:
   app:
-    # Select container using labels for better stability
-    imageSelector: ghcr.io/pittampalliorg/backstage-app:sha256-8e15c7a8c6d29af30f96dc2a406b34fe467636bf3df69f3375230f6d6d45d01f
+    # Use label selector instead of image selector for better stability
+    labelSelector:
+      app: backstage
+    # Specify the container name to target
+    container: backstage
     # Replace the container image with this dev-optimized image (allows to skip image building during development)
     devImage: ghcr.io/loft-sh/devspace-containers/typescript:20-alpine
     resources:
@@ -55,10 +56,8 @@ dev:
 
     sync:
       - path: ./
-      # - path: /home/vpittamp/.claude:/.claude
         excludePaths:
         - node_modules/
-        # - .git/  # Include .git for version info
         - dist/
         - dist-types/
         - "*.log"
@@ -69,24 +68,32 @@ dev:
       command: ./devspace_start.sh
     # Inject a lightweight SSH server into the container (so your IDE can connect to the remote dev env)
     ssh:
-      localHostname: my-app.devspace
+      enabled: true
+      localHostname: backstage.devspace
     # Make the following commands from my local machine available inside the dev container
-    # Commenting out proxy commands due to permission issues in the container
     proxyCommands:
-      - command: devspace
-      - command: kubectl
+      # - command: devspace
+      # - command: kubectl
       - gitCredentials: true
     # Forward the following ports to be able access your application via localhost
+    # Using alternative local ports to avoid conflicts
     ports:
-      - port: "3000:3000"      # Frontend (React app)
-        bindAddress: 0.0.0.0   # Allow access from outside container
-      - port: "7007:7007"      # Backend API
-        bindAddress: 0.0.0.0   # Allow access from outside container
-      - port: "9229"           # debugger, same local & remote
+      - port: "3001:3000"      # Frontend (map local 3001 to container 3000)
+      - port: "7008:7007"      # Backend API (map local 7008 to container 7007)
+      - port: "9230:9229"      # debugger (map local 9230 to container 9229)
     # Open the following URLs once they return an HTTP status code other than 502 or 503
-    # Disabled to prevent PowerShell errors in container
     open:
-      - url: http://localhost:3000
+      - url: http://localhost:7008
+    # Environment variables for development
+    env:
+      - name: NODE_ENV
+        value: development
+      - name: LOG_LEVEL
+        value: debug
+      - name: APP_CONFIG_app_baseUrl
+        value: "http://localhost:3001"
+      - name: APP_CONFIG_backend_baseUrl
+        value: "http://localhost:7008"
 # vars: 
 #   NEXTAUTH_URL="http://localhost:3000"
 #   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
