@@ -31,8 +31,9 @@ export const VersionIndicator = () => {
                      'dev';
   
   // Extract run number if it's in the format "run-XXX"
-  const displayVersion = appVersion.match(/run-(\d+)/) 
-    ? `v${appVersion.match(/run-(\d+)/)[1]}`
+  const match = appVersion.match(/run-(\d+)/);
+  const displayVersion = match 
+    ? `v${match[1]}`
     : appVersion;
 
   return (
