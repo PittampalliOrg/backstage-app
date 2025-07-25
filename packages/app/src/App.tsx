@@ -34,11 +34,13 @@ import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import LightIcon from '@material-ui/icons/WbSunny';
+import DashboardIcon from '@material-ui/icons/Dashboard';
 import {
   CNOEHomepage,
   cnoeLightTheme,
   cnoeDarkTheme,
 } from '@internal/plugin-cnoe-ui';
+import { HeadlampPage } from './components/HeadlampPage';
 import {configApiRef, useApi} from "@backstage/core-plugin-api";
 import { ArgoWorkflowsPage } from '@internal/plugin-argo-workflows';
 import { ApacheSparkPage } from '@internal/plugin-apache-spark';
@@ -67,6 +69,9 @@ const app = createApp({
         />
       );
     },
+  },
+  icons: {
+    dashboard: DashboardIcon,
   },
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
@@ -149,6 +154,7 @@ const routes = (
     <Route path="/argo-workflows" element={<ArgoWorkflowsPage />} />
     <Route path="/apache-spark" element={<ApacheSparkPage />} />
     <Route path="/terraform" element={<TerraformPluginPage />} />
+    <Route path="/headlamp" element={<HeadlampPage />} />
   </FlatRoutes>
 );
 

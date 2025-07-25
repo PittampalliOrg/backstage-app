@@ -5,6 +5,7 @@ import ExtensionIcon from '@material-ui/icons/Extension';
 import MapIcon from '@material-ui/icons/MyLocation';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
+import DashboardIcon from '@material-ui/icons/Dashboard';
 import {LogoFull, LogoIcon} from '@internal/plugin-cnoe-ui';
 import {
   Settings as SidebarSettings,
@@ -72,6 +73,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarDivider />
         <SidebarScrollWrapper>
           <SidebarItem icon={MapIcon} to="tech-radar" text="Tech Radar" />
+          <SidebarItem icon={DashboardIcon} to="headlamp" text="Headlamp" />
         </SidebarScrollWrapper>
       </SidebarGroup>
       <SidebarSpace />

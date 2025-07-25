@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button, Grid } from '@material-ui/core';
+import DashboardIcon from '@material-ui/icons/Dashboard';
 import {
   EntityApiDefinitionCard,
   EntityConsumedApisCard,
@@ -171,6 +172,50 @@ const overviewContent = (
   </Grid>
 );
 
+// Fullscreen wrapper component for Headlamp dashboard
+const HeadlampFullscreenWrapper = () => {
+  const handleOpenFullscreen = () => {
+    window.open('/api/proxy/headlamp', '_blank');
+  };
+
+  return (
+    <div style={{ 
+      height: 'calc(100vh - 200px)', // Subtract header and tabs height
+      width: 'calc(100% + 48px)', // Compensate for page padding
+      position: 'relative',
+      margin: '0 -24px', // Negate default page padding
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        padding: '8px 16px',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.12)'
+      }}>
+        <Button 
+          variant="outlined" 
+          size="small"
+          onClick={handleOpenFullscreen}
+          startIcon={<DashboardIcon />}
+        >
+          Open in New Tab
+        </Button>
+      </div>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <EntityIFrameContent 
+          iframe={{
+            src: "/api/proxy/headlamp",
+            height: "100%",
+            width: "100%"
+          }}
+          title="Kubernetes Dashboard"
+        />
+      </div>
+    </div>
+  );
+};
+
 const serviceEntityPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
@@ -185,14 +230,8 @@ const serviceEntityPage = (
       <EntityKubernetesContent refreshIntervalMs={30000} />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/headlamp" title="Headlamp" if={e => isKubernetesAvailable(e)}>
-      <EntityIFrameContent 
-        iframe={{
-          src: "/api/proxy/headlamp",
-          height: "100%"
-        }}
-        title="Kubernetes Dashboard"
-      />
+    <EntityLayout.Route path="/headlamp" title="Headlamp 🎛️" if={e => isKubernetesAvailable(e)}>
+      <HeadlampFullscreenWrapper />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/apache-spark" title="Spark" if={isApacheSparkAvailable}>
