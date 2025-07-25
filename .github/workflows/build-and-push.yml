@@ -22,7 +22,7 @@ jobs:
       matrix:
         environment:
           - name: dev
-            iframe_domain: "localtest.me"
+            iframe_domain: "cnoe.localtest.me"
           - name: production
             iframe_domain: "ai401kchat.com"
       fail-fast: false
