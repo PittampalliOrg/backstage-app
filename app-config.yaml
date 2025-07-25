@@ -31,6 +31,16 @@ backend:
     client: better-sqlite3
     connection: ':memory:'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
+  proxy:
+    '/headlamp':
+      target: 'http://headlamp.backstage.svc.cluster.local:4466'
+      changeOrigin: true
+      secure: false
+      pathRewrite:
+        '^/api/proxy/headlamp': '/'
+      headers:
+        X-Forwarded-Host: '${APP_CONFIG_app_baseUrl}'
+        X-Forwarded-Proto: 'https'
 integrations:
   gitea:
     - baseUrl: https://cnoe.localtest.me:8443/gitea
@@ -41,18 +51,6 @@ integrations:
       host: cnoe.localtest.me
       username: giteaAdmin
       password: ${GITEA_PASSWORD}
-
-proxy:
-  ### Example for how to add a proxy endpoint for the frontend.
-  ### A typical reason to do this is to handle HTTPS and CORS for internal services.
-  endpoints:
-    # Headlamp Kubernetes Dashboard
-    '/headlamp':
-      target: 'http://headlamp:4466'
-      changeOrigin: true
-      headers:
-        X-Forwarded-Host: '${APP_CONFIG_app_baseUrl}'
-        X-Forwarded-Proto: 'https'
 
 # Iframe plugin configuration - allowlist for embedded content
 iframe:
