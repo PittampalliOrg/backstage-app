@@ -49,12 +49,12 @@ auth:
         clientSecret: ${KEYCLOAK_CLIENT_SECRET}
         prompt: auto
 
-integrations:
-  gitea:
-    - baseUrl: https://gitea.cnoe.localtest.me:8443
-      host: gitea.cnoe.localtest.me:8443
-      username: ${GITEA_USERNAME}
-      password: ${GITEA_PASSWORD}
+# integrations:
+#   gitea:
+#     - baseUrl: https://gitea.cnoe.localtest.me:8443
+#       host: gitea.cnoe.localtest.me:8443
+#       username: ${GITEA_USERNAME}
+#       password: ${GITEA_PASSWORD}
 
 catalog:
   locations:
