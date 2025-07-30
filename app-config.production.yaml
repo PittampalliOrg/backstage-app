@@ -1,17 +1,25 @@
+# Production configuration overrides
+# This file is loaded after app-config.yaml when NODE_ENV=production
+
 app:
-  # Should be the same as backend.baseUrl when using the `app-backend` plugin.
-  baseUrl: http://localhost:7007
+  title: CNOE Backstage
+  baseUrl: https://cnoe.localtest.me:8443
+
+organization:
+  name: CNOE
 
 backend:
-  # Note that the baseUrl should be the URL that the browser and other clients
-  # should use when communicating with the backend, i.e. it needs to be
-  # reachable not just from within the backend host, but from all of your
-  # callers. When its value is "http://localhost:7007", it's strictly private
-  # and can't be reached by others.
-  baseUrl: http://localhost:7007
-  # The listener can also be expressed as a single <host>:<port> string. In this case we bind to
-  # all interfaces, the most permissive setting. The right value depends on your specific deployment.
-  listen: ':7007'
+  baseUrl: https://cnoe.localtest.me:8443
+  listen:
+    port: 7007
+    # Listen on all interfaces in container
+    host: 0.0.0.0
+  cors:
+    origin: https://cnoe.localtest.me:8443
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  cache:
+    store: memory
 
   # config options: https://node-postgres.com/api/client
   database:
@@ -28,8 +36,64 @@ backend:
       #   ca: # if you have a CA file and want to verify it you can uncomment this section
       #     $file: <file-path>/ca/server.crt
 
+# Remove guest provider in production
+auth:
+  environment: production
+  session:
+    secret: ${BACKSTAGE_SESSION_SECRET}
+  providers:
+    keycloak-oidc:
+      production:
+        metadataUrl: ${KEYCLOAK_NAME_METADATA}
+        clientId: backstage
+        clientSecret: ${KEYCLOAK_CLIENT_SECRET}
+        prompt: auto
+
+integrations:
+  gitea:
+    - baseUrl: https://gitea.cnoe.localtest.me:8443
+      host: gitea.cnoe.localtest.me:8443
+      username: ${GITEA_USERNAME}
+      password: ${GITEA_PASSWORD}
+
 catalog:
-  # Overrides the default list locations from app-config.yaml as these contain example data.
-  # See https://backstage.io/docs/features/software-catalog/#adding-components-to-the-catalog for more details
-  # on how to get entities into the catalog.
-  locations: []
+  locations:
+    - type: url
+      target: https://gitea.cnoe.localtest.me:8443/giteaAdmin/idpbuilder-localdev-backstage-templates-entities/raw/branch/main/catalog-info.yaml
+
+kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'config'
+      clusters:
+        - url: https://kubernetes.default.svc.cluster.local
+          name: local
+          authProvider: 'serviceAccount'
+          skipTLSVerify: true
+          skipMetricsLookup: true
+          serviceAccountToken:
+            $file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          caData:
+            $file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+argocd:
+  username: admin
+  password: ${ARGOCD_ADMIN_PASSWORD}
+  appLocatorMethods:
+    - type: 'config'
+      instances:
+        - name: in-cluster
+          url: https://cnoe.localtest.me:8443/argocd
+          username: admin
+          password: ${ARGOCD_ADMIN_PASSWORD}
+
+argoWorkflows:
+  baseUrl: ${ARGO_WORKFLOWS_URL}
+
+techdocs:
+  builder: 'local'
+  generator:
+    runIn: 'local'  # Changed from 'docker' for container environment
+  publisher:
+    type: 'local'
