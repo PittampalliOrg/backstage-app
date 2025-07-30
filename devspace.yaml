@@ -1,0 +1,142 @@
+version: v2beta1
+name: backstage
+
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
+pipelines:
+  # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
+  dev:
+      # ensure_pull_secrets --all    # 1. Ensure pull secrets
+      # create_deployments --all     # 2. Deploy Helm charts and manifests specified as "deployments"
+    run: |-
+      start_dev app                # 3. Start dev mode "app" (see "dev" section)
+  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
+  deploy:
+    run: |-
+      run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all                         # 2. Ensure pull secrets
+      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
+      create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
+
+# This is a list of `images` that DevSpace can build for this project
+# We recommend to skip image building during development (devspace dev) as much as possible
+images:
+  app:
+    image: ghcr.io/pittampalliorg/backstage:latest
+    dockerfile: ./Dockerfile
+
+# This is a list of `deployments` that DevSpace can create for this project
+deployments:
+  backstage:
+    # This deployment uses existing kubectl manifests
+    kubectl:
+      manifests:
+        - ./kubernetes/backstage-configmap.yaml
+        - ./kubernetes/backstage-deployment.yaml
+        - ./kubernetes/backstage-service.yaml
+
+# This is a list of `dev` containers that are based on the containers created by your deployments
+dev:
+  app:
+    # Select container using labels for better stability
+    imageSelector: ghcr.io/cnoe-io/backstage-app:9232d633b2698fffa6d0a73b715e06640d170162
+
+    # Replace the container image with this dev-optimized image (allows to skip image building during development)
+    devImage: ghcr.io/loft-sh/devspace-containers/typescript:18-alpine
+    resources:
+      limits:
+        cpu: "8"           # 8 CPU cores
+        memory: "16Gi"     # 16 GB memory
+        ephemeral-storage: "50Gi"  # 50 GB ephemeral storage
+      requests:
+        cpu: "4"           # Request 4 CPU cores minimum
+        memory: "8Gi"      # Request 8 GB memory minimum
+        ephemeral-storage: "20Gi"  # Request 20 GB storage minimum
+
+    sync:
+      - path: ./
+        excludePaths:
+        - node_modules/
+        - dist/
+        - dist-types/
+        - "*.log"
+        - .devspace/
+        - config/
+
+    # Open a terminal and use the following command to start it
+    terminal:
+      command: |
+        cd /app && \
+        echo "Installing dependencies with yarn..." && \
+        yarn install --ignore-engines --network-timeout 600000 || echo "Yarn install failed, continuing..." && \
+        ./devspace_start.sh
+    # Inject a lightweight SSH server into the container (so your IDE can connect to the remote dev env)
+    ssh:
+      enabled: true
+      localHostname: backstage.devspace
+    # Make the following commands from my local machine available inside the dev container
+    proxyCommands:
+      # - command: devspace
+      # - command: kubectl
+      - gitCredentials: true
+    # Forward the following ports to be able access your application via localhost
+    ports:
+      - port: "3000:3000"      # Frontend
+      - port: "7007:7007"      # Backend API
+      - port: "9229"      # Node.js debugger
+    # Open the following URLs once they return an HTTP status code other than 502 or 503
+    open:
+      - url: http://localhost:3000
+    # Environment variables for development
+    env:
+      - name: NODE_ENV
+        value: development
+      - name: LOG_LEVEL
+        value: debug
+      - name: APP_CONFIG_app_baseUrl
+        value: "http://localhost:3000"
+      - name: APP_CONFIG_backend_baseUrl
+        value: "http://localhost:7007"
+      # Integration credentials
+      - name: GITEA_PASSWORD
+        value: "${GITEA_PASSWORD}"
+      - name: KEYCLOAK_CLIENT_SECRET
+        value: "${KEYCLOAK_CLIENT_SECRET}"
+      - name: ARGOCD_ADMIN_PASSWORD
+        value: "${ARGOCD_ADMIN_PASSWORD}"
+      # Backend host configuration
+      - name: APP_CONFIG_backend_listen_host
+        value: "0.0.0.0"
+      - name: APP_CONFIG_backend_listen_port
+        value: "7007"
+# vars: 
+#   NEXTAUTH_URL="http://localhost:3000"
+#   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+#   NEXT_PUBLIC_ASSET_PREFIX="http://localhost:3000"
+#   NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+#   NEXT_PUBLIC_BASE_PATH="http://localhost:3000"
+#   NEXT_PUBLIC_OTEL_TRACES_ENDPOINT="http://localhost:3000/api/telemetry/traces"
+#   NEXT_PUBLIC_OTEL_LOGS_ENDPOINT="http://localhost:3000/api/telemetry/logs"
+# Use the `commands` section to define repeatable dev workflows for this project 
+commands:
+  migrate-db:
+    command: |-
+      echo 'This is a cross-platform, shared command that can be used to codify any kind of dev task.'
+      echo 'Anyone using this project can invoke it via "devspace run migrate-db"'
+  start-dev:
+    command: |-
+      APP_CONFIG_app_baseUrl=http://localhost:3000 APP_CONFIG_backend_baseUrl=http://localhost:7007 APP_CONFIG_backend_listen_host=0.0.0.0 npx nx serve backstage-app --config /app/app-config.yaml
+  start-combined:
+    command: |-
+      cd /app && ./start-combined.sh
+  start-separate:
+    command: |-
+      echo "Starting frontend and backend separately (for debugging)"
+      cd /app && APP_CONFIG_app_baseUrl=http://localhost:3000 APP_CONFIG_backend_baseUrl=http://localhost:7007 APP_CONFIG_backend_listen_host=0.0.0.0 npx nx run-many --target=start --projects=app,backend --parallel=2 --output-style=stream
+
+# Define dependencies to other projects with a devspace.yaml
+# dependencies:
+#   api:
+#     git: https://...  # Git-based dependencies
+#     tag: v1.0.0
+#   ui:
+#     path: ./ui        # Path-based dependencies (for monorepos)
