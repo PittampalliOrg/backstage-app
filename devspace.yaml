@@ -41,7 +41,7 @@ dev:
     imageSelector: ghcr.io/pittampalliorg/backstage-app:v35
 
     # Replace the container image with this dev-optimized image (allows to skip image building during development)
-    devImage: ghcr.io/loft-sh/devspace-containers/typescript:18-alpine
+    devImage: ghcr.io/loft-sh/devspace-containers/typescript:20-alpine
     resources:
       limits:
         cpu: "8"           # 8 CPU cores
@@ -141,3 +141,4 @@ commands:
 #     tag: v1.0.0
 #   ui:
 #     path: ./ui        # Path-based dependencies (for monorepos)
+#ARGOCD_ADMIN_PASSWORD=kZK2dtO0P2wDfojq GITEA_PASSWORD="]APM*EIHMLDX=uoPhvnT4S|I:{)y65.tplsbKw0E" yarn dev

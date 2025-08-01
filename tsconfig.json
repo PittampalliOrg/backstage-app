@@ -8,10 +8,7 @@
   ],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "target": "ES2022",
     "outDir": "dist-types",
-    "rootDir": ".",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "rootDir": "."
   }
 }
