@@ -11,7 +11,18 @@
   "runArgs": [ "--sysctl", "net.ipv6.conf.all.disable_ipv6=1"],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [3000, 7007],
+  "forwardPorts": [3000, 7007, 8443],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (Backstage UI)"
+    },
+    "7007": {
+      "label": "Backend (Backstage API)"
+    },
+    "8443": {
+      "label": "Kubernetes API"
+    }
+  },
 
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "bash .devcontainer/postCreate.sh",

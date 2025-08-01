@@ -38,7 +38,7 @@ deployments:
 dev:
   app:
     # Select container using labels for better stability
-    imageSelector: ghcr.io/cnoe-io/backstage-app:9232d633b2698fffa6d0a73b715e06640d170162
+    imageSelector: ghcr.io/pittampalliorg/backstage-app:v35
 
     # Replace the container image with this dev-optimized image (allows to skip image building during development)
     devImage: ghcr.io/loft-sh/devspace-containers/typescript:18-alpine
@@ -82,6 +82,7 @@ dev:
     ports:
       - port: "3000:3000"      # Frontend
       - port: "7007:7007"      # Backend API
+      - port: "8000:8000"      # Gitea
       - port: "9229"      # Node.js debugger
     # Open the following URLs once they return an HTTP status code other than 502 or 503
     open:
