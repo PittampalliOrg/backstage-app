@@ -23,9 +23,8 @@ backend:
   # Used for enabling authentication, secret is shared by all backend plugins
   # See https://backstage.io/docs/auth/service-to-service-auth for
   # information on the format
-  # auth:
-  #   keys:
-  #     - secret: ${BACKEND_SECRET}
+  auth:
+    dangerouslyDisableDefaultAuthPolicy: true
   baseUrl: https://cnoe.localtest.me:8443
   listen:
     port: 7007
@@ -77,6 +76,18 @@ proxy:
   #   '/test':
   #     target: 'https://example.com'
   #     changeOrigin: true
+  endpoints:
+    '/agent-forge':
+      target: 'http://127.0.0.1:8000'
+      changeOrigin: true
+      secure: false
+      pathRewrite:
+        '^/api/proxy/agent-forge': ''
+      headers:
+        X-Custom-Source: 'backstage'
+      # Allow all methods and headers for the agent
+      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+      allowedHeaders: ['Authorization', 'Content-Type']
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
