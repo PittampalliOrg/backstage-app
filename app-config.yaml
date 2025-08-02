@@ -24,7 +24,15 @@ backend:
   # See https://backstage.io/docs/auth/service-to-service-auth for
   # information on the format
   auth:
-    dangerouslyDisableDefaultAuthPolicy: true
+    dangerouslyDisableDefaultAuthPolicy: false
+    externalAccess:
+      - type: static
+        options:
+          token: ${BACKSTAGE_SERVICE_TOKEN}
+          subject: ai-platform-engineering-agent
+    pluginEndpoints:
+      '/api/proxy/agent-forge':
+        allowUnauthenticatedRequests: true
   baseUrl: https://cnoe.localtest.me:8443
   listen:
     port: 7007
@@ -78,7 +86,7 @@ proxy:
   #     changeOrigin: true
   endpoints:
     '/agent-forge':
-      target: 'http://127.0.0.1:8000'
+      target: 'http://ai-platform-engineering.ai-platform-engineering:8000'
       changeOrigin: true
       secure: false
       pathRewrite:
@@ -172,4 +180,4 @@ argoWorkflows:
   baseUrl: https://cnoe.localtest.me:8443/argo-workflows
 
 agentForge:
-  baseUrl: http://localhost:8000
+  baseUrl: http://localhost:7007/api/proxy/agent-forge
