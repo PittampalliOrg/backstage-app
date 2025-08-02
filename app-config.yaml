@@ -180,4 +180,4 @@ argoWorkflows:
   baseUrl: https://cnoe.localtest.me:8443/argo-workflows
 
 agentForge:
-  baseUrl: http://localhost:7007/api/proxy/agent-forge
+  baseUrl: http://localhost:8000
