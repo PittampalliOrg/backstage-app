@@ -1,11 +1,11 @@
 # Production configuration overrides
 # This file is loaded after app-config.yaml when NODE_ENV=production
 
-app:
-  title: CNOE Backstage
-  baseUrl: https://cnoe.localtest.me:8443
+# app:
+#   title: CNOE Backstage
+#   baseUrl: https://cnoe.localtest.me:8443
 
-backend:
-  baseUrl: https://cnoe.localtest.me:8443
-  cors:
-    origin: https://cnoe.localtest.me:8443
+# backend:
+#   baseUrl: https://cnoe.localtest.me:8443
+#   cors:
+#     origin: https://cnoe.localtest.me:8443
