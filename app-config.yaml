@@ -1,6 +1,6 @@
 app:
   title: CNOE
-  baseUrl: http://localhost:7007
+  baseUrl: http://localhost:3000
   # https:
   #   certificate:
   #     key: -----BEGIN PRIVATE KEY-----MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgZFOxtRwPqHEBCIGGBKFxJ9uHTvR87Z12t2AF8dIoSYShRANCAASoYhajDbIx358NCgQVXXZvjS3oQrWwvO+hvEgn/a068eHiBnZ55nahuGrWo0DKJ7VgLjhxhbTwNYS2NaC3Kywr-----END PRIVATE KEY-----
