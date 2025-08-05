@@ -1,11 +1,25 @@
 app:
   title: CNOE
   baseUrl: http://localhost:3000
+  # https:
+  #   certificate:
+  #     key: -----BEGIN PRIVATE KEY-----MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgZFOxtRwPqHEBCIGGBKFxJ9uHTvR87Z12t2AF8dIoSYShRANCAASoYhajDbIx358NCgQVXXZvjS3oQrWwvO+hvEgn/a068eHiBnZ55nahuGrWo0DKJ7VgLjhxhbTwNYS2NaC3Kywr-----END PRIVATE KEY-----
+  #     cert: -----BEGIN CERTIFICATE-----MIIBrjCCAVSgAwIBAgIQXgz9qlMZFBddSZAkgurSWzAKBggqhkjOPQQDAjASMRAwDgYDVQQKEwdjbm9lLmlvMB4XDTI1MDcyOTE1NDY1MloXDTI2MDcyOTIxNDY1MlowEjEQMA4GA1UEChMHY25vZS5pbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKhiFqMNsjHfnw0KBBVddm+NLehCtbC876G8SCf9rTrx4eIGdnnmdqG4atajQMontWAuOHGFtPA1hLY1oLcrLCujgYswgYgwDgYDVR0PAQH/BAQDAgKEMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFELHmap3YJ+6igcrrUAKYWKAi3CcMDEGA1UdEQQqMCiCEWNub2UubG9jYWx0ZXN0Lm1lghMqLmNub2UubG9jYWx0ZXN0Lm1lMAoGCCqGSM49BAMCA0gAMEUCIFqC3Hp67eBISDuBR0gqrnckDlVK2j+MvV+9mlLDCrZvAiEAsq+J8gANciBg1fnMmnARj2ok/JjbKz+yI2LQCoyexZc=-----END CERTIFICATE-----
 
 organization:
   name: CNOE
 
 backend:
+  reading:
+    allow:
+      - host: localhost
+      - host: localhost:3000
+      - host: gitea.cnoe.localtest.me
+      - host: gitea.cnoe.localtest.me:8443
+      - host: '*.cnoe.localtest.me'
+      - host: '*.cnoe.localtest.me:8443'
+      - host: https://gitea.cnoe.localtest.me
+
   # Used for enabling authentication, secret is shared by all backend plugins
   # See https://backstage.io/docs/auth/service-to-service-auth for
   # information on the format
@@ -16,39 +30,61 @@ backend:
   listen:
     port: 7007
     # Uncomment the following host directive to bind to specific interfaces
-    # host: 127.0.0.1
+    host: 0.0.0.0
   csp:
     connect-src: ["'self'", 'http:', 'https:']
     # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
     # Default Helmet Content-Security-Policy values can be removed by setting the key to false
   cors:
-    origin: http://localhost:3000
-    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    origin:
+      - http://localhost:3000
+      - https://cnoe.localtest.me:8443
+      - http://localhost:7007
+      - http://127.0.0.1:7007
+      - http://[::1]:7007
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE, OPTIONS]
     credentials: true
   # This is for local development only, it is not recommended to use this in production
   # The production database configuration is stored in app-config.production.yaml
+  # config options: https://node-postgres.com/api/client
   database:
-    client: better-sqlite3
-    connection: ':memory:'
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 integrations:
   gitea:
-    - baseUrl: https://cnoe.localtest.me:8443/gitea
-      host: cnoe.localtest.me:8443
+    - baseUrl: https://gitea.cnoe.localtest.me:8443
+      host: gitea.cnoe.localtest.me:8443
       username: giteaAdmin
       password: ${GITEA_PASSWORD}
-    - baseUrl: https://cnoe.localtest.me/gitea
-      host: cnoe.localtest.me
+    - baseUrl: https://gitea.cnoe.localtest.me
+      host: gitea.cnoe.localtest.me
+      username: giteaAdmin
+      password: ${GITEA_PASSWORD}
+    - baseUrl: https://gitea.cnoe.localtest.me:8443
+      host: cnoe.localtest.me:8443
       username: giteaAdmin
       password: ${GITEA_PASSWORD}
 
 proxy:
   ### Example for how to add a proxy endpoint for the frontend.
   ### A typical reason to do this is to handle HTTPS and CORS for internal services.
-  # endpoints:
-  #   '/test':
-  #     target: 'https://example.com'
-  #     changeOrigin: true
+  endpoints:
+    '/agent-forge':
+      target: 'http://ai-platform-engineering.ai-platform-engineering.svc.cluster.local:8000'
+      changeOrigin: true
+      secure: false  # Allow self-signed certificates
+      headers:
+        X-Custom-Source: 'backstage'
+      # Allow unauthenticated requests
+      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+      allowedHeaders: ['Authorization', 'Content-Type']
+      # This is important - it allows the proxy to work without backend auth
+      credentials: 'same-origin'
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
@@ -62,17 +98,17 @@ techdocs:
     type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
 auth:
   # see https://backstage.io/docs/auth/ to learn about auth providers
-  environment: local # set this to development to enable SSO
+  environment: development # set this to development to enable SSO
   session:
     secret: abcdfkjalskdfjkla
   providers:
-    guest: {}
     keycloak-oidc:
       development:
         metadataUrl: https://cnoe.localtest.me:8443/keycloak/realms/cnoe/.well-known/openid-configuration
         clientId: backstage
         clientSecret: ${KEYCLOAK_CLIENT_SECRET}
         prompt: auto
+      
 
 scaffolder:
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
@@ -88,7 +124,7 @@ catalog:
     - allow: [ Component, System, API, Resource, Location, Template ]
   locations:
     - type: url
-      target: https://cnoe.localtest.me:8443/gitea/giteaAdmin/idpbuilder-localdev-backstage-templates-entities/src/branch/main/catalog-info.yaml
+      target: https://gitea.cnoe.localtest.me:8443/giteaAdmin/idpbuilder-localdev-backstage-templates-entities/raw/branch/main/catalog-info.yaml
 #    # Local example template
 #    - type: file
 #      target: ../../examples/template/template.yaml
@@ -101,7 +137,7 @@ catalog:
 #      rules:
 #        - allow: [User, Group]
 
-    ## Uncomment these lines to add more example data
+    # Uncomment these lines to add more example data
     # - type: url
     #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
 
@@ -116,18 +152,16 @@ kubernetes:
   clusterLocatorMethods:
     - type: 'config'
       clusters:
-        - url: https://127.0.0.1:33277 # you may need to change this
+        - url: https://kubernetes.default.svc.cluster.local
           name: local
           authProvider: 'serviceAccount'
-          skipTLSVerify: true
-          # replace with your own service account token value. e.g. kubectl -n backstage exec -it deploy/backstage  -- cat /var/run/secrets/kubernetes.io/serviceaccount/token
-          serviceAccountToken: eyJhbG......
+          skipTLSVerify: true  # Skip TLS verification for development
 argocd:
   appLocatorMethods:
     - type: 'config'
       instances:
-        - name: local
-          url: https://cnoe.localtest.me:8443/argocd
+        - name: in-cluster
+          url: https://argocd.cnoe.localtest.me:8443
           username: admin
           # replace with your argocd password e.g. kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
           password: ${ARGOCD_ADMIN_PASSWORD}
@@ -135,4 +169,4 @@ argoWorkflows:
   baseUrl: https://cnoe.localtest.me:8443/argo-workflows
 
 agentForge:
-  baseUrl: http://localhost:8000
+  baseUrl: http://localhost:7007/api/proxy/agent-forge

@@ -1,0 +1,150 @@
+version: v2beta1
+name: backstage
+
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
+pipelines:
+  dev: |-
+    # Deploy the application and then start dev
+    run_default_pipeline dev
+
+    # Open VSCode as soon as we are done
+    code --folder-uri vscode-remote://ssh-remote+backstage.devspace/app
+
+# This is a list of `images` that DevSpace can build for this project
+# We recommend to skip image building during development (devspace dev) as much as possible
+# images:
+#   app:
+#     image: ghcr.io/pittampalliorg/backstage-app:latest
+#     dockerfile: ./Dockerfile
+
+# # This is a list of `deployments` that DevSpace can create for this project
+# deployments:
+#   app:
+#     # This deployment uses `helm` but you can also define `kubectl` deployments or kustomizations
+#     helm:
+#       # We are deploying this project with the Helm chart you provided
+#       chart:
+#         name: component-chart
+#         repo: https://charts.devspace.sh
+#       # Under `values` we can define the values for this Helm chart used during `helm install/upgrade`
+#       # You may also use `valuesFiles` to load values from files, e.g. valuesFiles: ["values.yaml"]
+#       values:
+#         containers:
+#           - image: username/app
+#         service:
+#           ports:
+#             - port: 7007
+
+# This is a list of `dev` containers that are based on the containers created by your deployments
+dev:
+  app:
+    # Select container using labels for better stability
+    imageSelector: ghcr.io/pittampalliorg/backstage-app:v39
+    persistPaths:
+      - path: /app/node_modules
+        volumePath: node-modules
+        readOnly: false
+        skipPopulate: true
+      - path: /app/.nx
+        volumePath: nx-cache
+        readOnly: false
+        skipPopulate: true
+      - path: /app/packages/backend/dist
+        volumePath: backend-dist
+        readOnly: false
+        skipPopulate: true  
+    # Replace the container image with this dev-optimized image (allows to skip image building during development)
+    devImage: ghcr.io/vpittamp/devspace-containers/typescript:20
+    command: ["sleep", "100000"]
+    resources:
+      limits:
+        cpu: "8"           # 8 CPU cores
+        memory: "16Gi"     # 16 GB memory
+        ephemeral-storage: "50Gi"  # 50 GB ephemeral storage
+      requests:
+        cpu: "4"           # Request 4 CPU cores minimum
+        memory: "8Gi"      # Request 8 GB memory minimum
+        ephemeral-storage: "20Gi"  # Request 20 GB storage minimum
+
+    sync:
+      - path: ./
+        excludePaths:
+        - node_modules/
+        printLogs: true
+        waitInitialSync: true
+      # Sync Claude Code credentials
+      - path: ~/.claude:/home/node/.claude
+        excludePaths:
+        - "*.log"
+        - "*.tmp"
+        - shell-snapshots/
+        - todos/
+        printLogs: true
+
+
+    # Open a terminal and use the following command to start it
+    # terminal:
+    #   command: ./devspace_start.sh
+
+        # yarn install --ignore-engines --network-timeout 600000 || echo "Yarn install failed, continuing..."
+    # attach:
+    #   enabled: true
+
+    # Inject a lightweight SSH server into the container (so your IDE can connect to the remote dev env)
+    ssh:
+      enabled: true
+      localHostname: backstage.devspace
+      localPort: 10448
+    # Make the following commands from my local machine available inside the dev container
+    proxyCommands:
+      - command: devspace
+      - command: kubectl
+      - command: helm
+      - command: git
+      - gitCredentials: true
+    workingDir: /app
+    # Forward the following ports to be able access your application via localhost
+    ports:
+      - port: "3000:3000"      # Frontend
+      - port: "7007:7007"      # Backend API
+      - port: "9229:9229"      # Node.js debugger
+    # # Open the following URLs once they return an HTTP status code other than 502 or 503
+    # open:
+    #   - url: http://localhost:3000
+
+    env:
+      - name: BROWSER
+        value: "none"
+      - name: npm_config_yes
+        value: "true"
+      - name: NODE_TLS_REJECT_UNAUTHORIZED
+        value: "0"
+# Use the `commands` section to define repeatable dev workflows for this project
+commands:
+  migrate-db:
+    command: |-
+      echo 'This is a cross-platform, shared command that can be used to codify any kind of dev task.'
+      echo 'Anyone using this project can invoke it via "devspace run migrate-db"'
+
+  dev-vscode:
+    command: |-
+      echo "Starting DevSpace with VS Code integration..."
+      echo ""
+      echo "VS Code will automatically open once DevSpace SSH is ready."
+      echo ""
+      
+      # Try to launch the Windows batch file in background (if available)
+      if [ -f "/mnt/c/Users/VinodPittampalli/devspace_vscode_launcher.bat" ]; then
+        echo "Launching VS Code monitor in background..."
+        cmd.exe /c "start /min C:\\Users\\VinodPittampalli\\devspace_vscode_launcher.bat" 2>/dev/null &
+      fi
+      
+      # Run devspace dev normally (which will also try to launch VS Code)
+      devspace dev
+# Define dependencies to other projects with a devspace.yaml
+# dependencies:
+#   api:
+#     git: https://...  # Git-based dependencies
+#     tag: v1.0.0
+#   ui:
+#     path: ./ui        # Path-based dependencies (for monorepos)
