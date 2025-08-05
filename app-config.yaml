@@ -1,6 +1,6 @@
 app:
   title: CNOE
-  baseUrl: http://localhost:3000
+  baseUrl: http://localhost:7007
   # https:
   #   certificate:
   #     key: -----BEGIN PRIVATE KEY-----MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgZFOxtRwPqHEBCIGGBKFxJ9uHTvR87Z12t2AF8dIoSYShRANCAASoYhajDbIx358NCgQVXXZvjS3oQrWwvO+hvEgn/a068eHiBnZ55nahuGrWo0DKJ7VgLjhxhbTwNYS2NaC3Kywr-----END PRIVATE KEY-----
@@ -70,21 +70,21 @@ integrations:
       username: giteaAdmin
       password: ${GITEA_PASSWORD}
 
-proxy:
-  ### Example for how to add a proxy endpoint for the frontend.
-  ### A typical reason to do this is to handle HTTPS and CORS for internal services.
-  endpoints:
-    '/agent-forge':
-      target: 'http://ai-platform-engineering.ai-platform-engineering.svc.cluster.local:8000'
-      changeOrigin: true
-      secure: false  # Allow self-signed certificates
-      headers:
-        X-Custom-Source: 'backstage'
-      # Allow unauthenticated requests
-      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-      allowedHeaders: ['Authorization', 'Content-Type']
-      # This is important - it allows the proxy to work without backend auth
-      credentials: 'same-origin'
+# proxy:
+#   ### Example for how to add a proxy endpoint for the frontend.
+#   ### A typical reason to do this is to handle HTTPS and CORS for internal services.
+#   endpoints:
+#     '/agent-forge':
+#       target: 'http://ai-platform-engineering.ai-platform-engineering.svc.cluster.local:8000'
+#       changeOrigin: true
+#       secure: false  # Allow self-signed certificates
+#       headers:
+#         X-Custom-Source: 'backstage'
+#       # Allow unauthenticated requests
+#       allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+#       allowedHeaders: ['Authorization', 'Content-Type']
+#       # This is important - it allows the proxy to work without backend auth
+#       credentials: 'same-origin'
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
 # Note: After experimenting with basic setup, use CI/CD to generate docs
@@ -169,4 +169,4 @@ argoWorkflows:
   baseUrl: https://cnoe.localtest.me:8443/argo-workflows
 
 agentForge:
-  baseUrl: http://localhost:7007/api/proxy/agent-forge
+  baseUrl: https://ai-platform-engineering.cnoe.localtest.me:8443
