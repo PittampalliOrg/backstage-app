@@ -23,6 +23,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Gather build metadata for use in Docker labels and future pipeline operations
+      - name: Gather build metadata
+        id: metadata
+        run: |
+          echo "commit_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "commit_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "build_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --pretty=%B | head -n 1 | tr -d '\n' | cut -c1-100)" >> $GITHUB_OUTPUT
+          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
+          echo "build_number=${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "repository=${{ github.repository }}" >> $GITHUB_OUTPUT
+      
       # Uses the `docker/login-action` action to log in to the Container registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
@@ -36,7 +53,13 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: ${{ github.sha }}
+          tags: |
+            type=raw,value=v${{ github.run_number }}
+            type=raw,value=${{ github.run_number }}
+            type=raw,value=run-${{ github.run_number }}
+            type=raw,value={{date 'YYYYMMDD'}}-${{ github.run_number }}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
       # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
       # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see "[Usage](https://github.com/docker/build-push-action#usage)" in the README of the `docker/build-push-action` repository.
       # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
@@ -47,7 +70,15 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.revision=${{ steps.metadata.outputs.commit_sha }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.created=${{ steps.metadata.outputs.build_time }}
+            build.number=${{ steps.metadata.outputs.build_number }}
+            build.commit.author=${{ steps.metadata.outputs.commit_author }}
+            build.commit.message=${{ steps.metadata.outputs.commit_message }}
+            build.branch=${{ steps.metadata.outputs.branch }}
 
       # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)."
       - name: Generate artifact attestation
@@ -56,3 +87,31 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+      
+      # Output build summary for visibility in GitHub Actions
+      - name: Output summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "- **GHCR Image**: ghcr.io/${{ env.IMAGE_NAME }}:v${{ steps.metadata.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Latest Tag**: ghcr.io/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Primary Tag**: v${{ steps.metadata.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **All Tags**: v${{ steps.metadata.outputs.build_number }}, ${{ steps.metadata.outputs.build_number }}, run-${{ steps.metadata.outputs.build_number }}, {{date 'YYYYMMDD'}}-${{ steps.metadata.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Time**: ${{ steps.metadata.outputs.build_time }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Number**: #${{ steps.metadata.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author**: ${{ steps.metadata.outputs.commit_author }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Message**: ${{ steps.metadata.outputs.commit_message }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Metadata (embedded in image labels)" >> $GITHUB_STEP_SUMMARY
+          echo "These labels are available in the Docker image:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`org.opencontainers.image.revision\`: ${{ steps.metadata.outputs.commit_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- \`org.opencontainers.image.created\`: ${{ steps.metadata.outputs.build_time }}" >> $GITHUB_STEP_SUMMARY
+          echo "- \`build.number\`: ${{ steps.metadata.outputs.build_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- \`build.branch\`: ${{ steps.metadata.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- \`build.commit.author\`: ${{ steps.metadata.outputs.commit_author }}" >> $GITHUB_STEP_SUMMARY
