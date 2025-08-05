@@ -39,7 +39,7 @@ pipelines:
 dev:
   app:
     # Select container using labels for better stability
-    imageSelector: ghcr.io/pittampalliorg/backstage-app:v39
+    imageSelector: ghcr.io/pittampalliorg/backstage-app:v44
     persistPaths:
       - path: /app/node_modules
         volumePath: node-modules
